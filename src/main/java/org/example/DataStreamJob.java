@@ -26,6 +26,9 @@ import org.apache.flink.table.api.Schema;
 import org.apache.flink.table.api.TableDescriptor;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 
+import java.time.ZoneId;
+import java.util.TimeZone;
+
 /**
  * Skeleton for a Flink DataStream Job.
  *
@@ -87,6 +90,5 @@ public class DataStreamJob {
 
         tableEnv.executeSql("insert into sink select * from source");
 
-        env.execute("Flink CDC K8s DEMO");
     }
 }
