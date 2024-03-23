@@ -18,6 +18,8 @@
 
 package org.example;
 
+import lombok.extern.slf4j.Slf4j;
+import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.Schema;
@@ -36,6 +38,7 @@ import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
  * <p>If you change the name of the main class (with the public static void main(String[] args))
  * method, change the respective entry in the POM.xml file (simply search for 'mainClass').
  */
+@Slf4j
 public class DataStreamJob {
 
     public static void main(String[] args) throws Exception {
@@ -45,8 +48,15 @@ public class DataStreamJob {
         StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
 
         // mysql props
-        String mysqlHost = System.getProperty("mysql.hostname");
-        String mysqlPort = System.getProperty("mysql.port");
+        ParameterTool parameter = ParameterTool.fromArgs(args);
+        String host = parameter.get("mysql.hostname");
+        String port = parameter.get("mysql.port");
+        String user = parameter.get("mysql.user");
+        String pwd = parameter.get("mysql.pwd");
+        String db = parameter.get("mysql.db");
+        String sourceTable = parameter.get("source.table");
+        String sinkTable = parameter.get("sink.table");
+        log.info("MySQL地址：{}:{}", host, port);
         // 表结构
         Schema schema = Schema.newBuilder()
                 .column("id", DataTypes.INT().notNull())
@@ -55,21 +65,21 @@ public class DataStreamJob {
                 .primaryKey("id")
                 .build();
         TableDescriptor sourceTableDesc = TableDescriptor.forConnector("mysql-cdc")
-                .option("hostname", mysqlHost)
-                .option("port", mysqlPort)
-                .option("username", "root")
-                .option("password", "000000")
-                .option("database-name", "playground")
-                .option("table-name", "cdc_table")
+                .option("hostname", host)
+                .option("port", port)
+                .option("username", user)
+                .option("password", pwd)
+                .option("database-name", db)
+                .option("table-name", sourceTable)
                 .option("server-time-zone", "UTC")
                 .option("scan.startup.mode", "earliest-offset")
                 .schema(schema)
                 .build();
         TableDescriptor sinkTableDesc = TableDescriptor.forConnector("jdbc")
-                .option("url", "jdbc:mysql://" + mysqlHost + ":" + mysqlPort + "/playground")
-                .option("username", "root")
-                .option("password", "000000")
-                .option("table-name", "cdc_table_copy")
+                .option("url", "jdbc:mysql://" + host + ":" + port + "/" + db)
+                .option("username", user)
+                .option("password", pwd)
+                .option("table-name", sinkTable)
                 .schema(schema)
                 .build();
         tableEnv.createTable("source", sourceTableDesc);
